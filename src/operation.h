@@ -2,6 +2,7 @@
 #define INFINI_CCL_OPERATION_H_
 
 #include <memory>
+#include <type_traits>
 
 #include "backend.h"
 #include "backend_device_map.h"
@@ -11,6 +12,8 @@
 #include "traits.h"
 
 namespace infini::ccl {
+
+class AllReduceBatch;
 
 template <typename Key, BackendType backend_type = BackendType::kCount,
           Device::Type device_type = Device::Type::kCount>
@@ -23,7 +26,13 @@ class Operation {
     constexpr Device::Type kBestDev =
         ListGetBest<DevicePriority>(ActiveDevices<Key>{});
 
-    return Call(kBestBack, kBestDev, std::forward<Args>(args)...);
+    if constexpr (std::is_same_v<Key, AllReduceBatch> &&
+                  IsSupportedCombination<kBestBack, kBestDev>::value) {
+      return Key::template Execute<kBestBack, kBestDev>(
+          std::forward<Args>(args)...);
+    } else {
+      return Call(kBestBack, kBestDev, std::forward<Args>(args)...);
+    }
   }
 
   template <typename... Args>
