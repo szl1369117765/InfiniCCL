@@ -45,6 +45,25 @@ typedef enum {
 } infinicclRedOp_t;
 
 // Collective Communication Functions
+// Submit num_ops independent logical AllReduces on one communicator/stream.
+// Counts are element counts, with one common datatype and reduction operation.
+// All ranks must provide the same ordered operation sequence. num_ops must be
+// nonzero; arrays and buffer pointers must be non-null, including zero counts.
+// Per-entry in-place reduction is allowed. Entries must not depend on results
+// of other entries in this batch. Buffer storage must remain valid until stream
+// completion; success means submission, not device completion.
+// Invalid batch metadata is rejected before native submission. A provider
+// failure after submission may leave partial work queued: do not blindly retry.
+// A native group is closed after every successful GroupStart, retaining the
+// first error. Backends without this operation return infinicclNotSupported.
+// This additive API does not change infinicclAllReduce or own the communicator.
+infinicclResult_t infinicclAllReduceBatch(const void *const *send_buffs,
+                                          void *const *recv_buffs,
+                                          const size_t *counts, size_t num_ops,
+                                          infinicclDataType_t datatype,
+                                          infinicclRedOp_t op,
+                                          infinicclComm_t comm, void *stream);
+
 infinicclResult_t infinicclAllReduce(const void *sendbuff, void *recvbuff,
                                      size_t count, infinicclDataType_t datatype,
                                      infinicclRedOp_t op, infinicclComm_t comm,
